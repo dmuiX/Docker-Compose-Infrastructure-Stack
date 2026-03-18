@@ -1,0 +1,135 @@
+###############################################################################
+##                           Authelia Configuration                          ##
+##                    Updated for Authelia 4.38+/4.39                        ##
+##                                                                           ##
+##  Secrets are loaded via environment variables:                            ##
+##    AUTHELIA_AUTHENTICATION_BACKEND_LDAP_PASSWORD_FILE                     ##
+##    AUTHELIA_IDENTITY_PROVIDERS_OIDC_HMAC_SECRET_FILE                      ##
+##    AUTHELIA_JWT_SECRET_FILE (for identity_validation.reset_password)      ##
+##    AUTHELIA_SESSION_SECRET_FILE                                           ##
+##    AUTHELIA_STORAGE_ENCRYPTION_KEY_FILE                                   ##
+###############################################################################
+
+##
+## Server Configuration (UPDATED: host/port replaced with address)
+##
+server:
+  address: "tcp://0.0.0.0:9091/"
+
+log:
+  level: info
+
+##
+## Authentication Backend Provider Configuration
+##
+authentication_backend:
+  #file:
+  #  path: '/config/users_database.yml'
+  ldap:
+    implementation: activedirectory
+    # UPDATED: 'address' format
+    address: "ldap://samba-dc.domain.org:389"
+    timeout: 5s
+    # Enable StartTLS - upgrades connection to TLS (required by your Samba-DC)
+    start_tls: true
+    tls:
+      # Skip cert verification if using self-signed or if container doesn't trust the CA
+      skip_verify: false
+      # If you need to trust the Let's Encrypt CA, mount the chain into Authelia
+      # server_name: 'samba-dc.domain.org'
+    # Optional: restricts login to users in specific containers
+    # NOTE: Samba-DC uses CN=Users (not OU=Users) by default!
+    base_dn: "DC=domain,DC=org"
+    additional_users_dn: "CN=Users"
+    # Filters: NOT NEEDED - 'activedirectory' implementation provides sensible defaults
+    # that exclude disabled/locked/expired accounts automatically
+    # The service account (NOT the domain admin!)
+    user: "CN=authelia,OU=Service-Accounts,DC=domain,DC=org"
+    # Password for the AUTHELIA service account (not admin!)
+    # Loaded via AUTHELIA_AUTHENTICATION_BACKEND_LDAP_PASSWORD_FILE env var
+    attributes:
+      display_name: "displayName"
+      group_name: "cn"
+      mail: "mail"
+      member_of: "memberOf"
+      username: "sAMAccountName"
+
+##
+## Password Policy - Enforces strong passwords
+##
+password_policy:
+  standard:
+    enabled: true
+    min_length: 12
+    max_length: 128
+    require_uppercase: true
+    require_lowercase: true
+    require_number: true
+    require_special: true
+
+##
+## Brute Force Protection
+##
+regulation:
+  max_retries: 3
+  find_time: "2m"
+  ban_time: "5m"
+
+##
+## NTP Configuration for TOTP accuracy
+##
+ntp:
+  address: "udp://192.168.1.1:123"
+  version: 4
+  max_desync: "3s"
+  disable_startup_check: false
+
+##
+## Access Control Configuration
+##
+access_control:
+  default_policy: two_factor
+  rules:
+    # Bypass for Authelia itself
+    - domain: "authelia.domain.org"
+      policy: bypass
+    # Two-factor for all protected apps
+    - domain: "*.domain.org"
+      policy: two_factor
+
+##
+## Session Provider Configuration (UPDATED: cookies structure changed)
+## Secret loaded via AUTHELIA_SESSION_SECRET_FILE env var
+##
+session:
+  name: "authelia_session"
+  cookies:
+    - domain: "domain.org"
+      authelia_url: "https://authelia.domain.org"
+      name: "authelia_session"
+      # Expiration settings (UPDATED: use duration format)
+      expiration: "1h"
+      inactivity: "5m"
+      remember_me: "1M"
+
+##
+## Storage Provider Configuration
+## encryption_key loaded via AUTHELIA_STORAGE_ENCRYPTION_KEY_FILE env var
+##
+storage:
+  local:
+    path: "/config/db.sqlite3"
+
+##
+## Notification Configuration
+##
+# necessary for topt! do not use smtp doesnt work!
+notifier:
+  filesystem:
+    filename: "/config/notification.txt"
+
+## Identity Providers - OpenID Connect (UPDATED for 4.38+)
+## hmac_secret loaded via AUTHELIA_IDENTITY_PROVIDERS_OIDC_HMAC_SECRET_FILE env var
+##
+identity_providers:
+  oidc:
