@@ -1,0 +1,12 @@
+*password*
+*user*
+.DS_Store
+
+# env files
+.env
+.env.*
+*.env
+**/*.env
+
+# secrets / credentials
+authelia/secrets/**
