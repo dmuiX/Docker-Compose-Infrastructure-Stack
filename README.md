@@ -1,4 +1,4 @@
-# Docker Compose Infrastructure Stack
+# 🐳 Docker Compose Infrastructure Stack
 
 Self-hosted infrastructure stack: SSO/OIDC, Active Directory, reverse proxy, DNS — optimized for minimal resource usage.
 
@@ -6,7 +6,7 @@ Self-hosted infrastructure stack: SSO/OIDC, Active Directory, reverse proxy, DNS
 
 ---
 
-## Why this stack?
+## 🤔 Why this stack?
 
 **Why Docker Compose instead of Kubernetes?**
 For a single-node setup, Kubernetes adds orchestration overhead without real benefit. Docker Compose gives you the same containerized services with a fraction of the resource usage — the entire stack (25+ containers) runs at ~28W idle and ~3GB RAM. I run a separate [Talos Kubernetes cluster](https://github.com/dmuiX/k8s-cluster-talos) for learning and testing — but for production use on a single host, Compose is the pragmatic choice.
@@ -22,34 +22,34 @@ A full-blown Prometheus stack is not necessary for a single-node host. Uptime Ku
 
 ---
 
-## Architecture Overview
+## 🏗️ Architecture Overview
 
 ```mermaid
 graph TD
-    Internet([Internet])
+    Internet(["🌐 Internet"])
 
     Internet --> SWAG
 
     subgraph Core Infrastructure
-        SWAG[SWAG<br/>Reverse Proxy & SSL]
-        SWAG --> Authelia[Authelia<br/>SSO / OIDC / 2FA]
-        Authelia -.->|LDAP auth| SambaDC[Samba-DC<br/>Active Directory]
+        SWAG["🔒 SWAG<br/>Reverse Proxy & SSL"]
+        SWAG --> Authelia["🛡️ Authelia<br/>SSO / OIDC / 2FA"]
+        Authelia -.->|LDAP auth| SambaDC["🏢 Samba-DC<br/>Active Directory"]
     end
 
     subgraph Application Services
-        Authelia --> Nextcloud[Nextcloud<br/>Cloud Storage]
-        Authelia --> Arcane[Arcane<br/>Dashboard]
+        Authelia --> Nextcloud["☁️ Nextcloud<br/>Cloud Storage"]
+        Authelia --> Arcane["📊 Arcane<br/>Dashboard"]
     end
 
     subgraph DNS & Network
-        Pihole[Pi-hole + Unbound<br/>Local DNS]
-        Dockerproxy[Docker Proxy<br/>Secured Socket]
+        Pihole["🧹 Pi-hole + Unbound<br/>Local DNS"]
+        Dockerproxy["🔌 Docker Proxy<br/>Secured Socket"]
     end
 ```
 
 ---
 
-## Services
+## 📦 Services
 
 | Folder | Service | Description |
 | ------ | ------- | ----------- |
@@ -63,7 +63,7 @@ graph TD
 
 ---
 
-## Auth Layer (Samba-DC + Authelia)
+## 🔐 Auth Layer (Samba-DC + Authelia)
 
 Samba-DC provides an **Active Directory** backend. Authelia sits in front of services and handles:
 
@@ -115,7 +115,7 @@ See [`authelia/authelia.yml`](authelia/authelia.yml) for the expected secret pat
 
 ---
 
-## Samba DC
+## 🏢 Samba DC
 
 Samba-DC runs on a **macvlan** interface with a dedicated LAN IP so it can act as a proper AD domain controller (ports 53, 389, 445, 636).
 
@@ -130,7 +130,7 @@ openssl rand -base64 32 > samba-dc/samba_admin_pass
 
 ---
 
-## Reverse Proxy (SWAG)
+## 🔒 Reverse Proxy (SWAG)
 
 SWAG handles all inbound traffic, SSL termination, and forwards requests to backend services.
 Custom proxy configs live in [`1-swag/custom-proxies/`](1-swag/custom-proxies/).
@@ -148,14 +148,14 @@ dns_cloudflare_api_token = YOUR_CLOUDFLARE_API_TOKEN
 
 ---
 
-## DNS (Pi-hole + Unbound)
+## 🧹 DNS (Pi-hole + Unbound)
 
 Pi-hole acts as the local DNS server with ad-blocking.
 Unbound runs as a sidecar container (`madnuttah/unbound`) and is configured via the image's built-in defaults.
 
 ---
 
-## Environment Variables
+## ⚙️ Environment Variables
 
 Several services rely on the following variables being present in the shell environment:
 
@@ -175,7 +175,7 @@ export PGID=1000
 
 ---
 
-## Docker Networks
+## 🌐 Docker Networks
 
 All services use **external** Docker networks that must exist on the host before starting:
 
@@ -194,7 +194,7 @@ docker network create -d macvlan \
 
 ---
 
-## Container Registry (`dhi.io`)
+## 🛡️ Container Registry (`dhi.io`)
 
 Images are pulled from [dhi.io](https://dhi.io) instead of Docker Hub for faster and more complete CVE fixes. Some images here use it (`uptime-kuma`, `postgres`, `redis`).
 If you'd rather use the official images, drop-in replacements:
@@ -207,13 +207,13 @@ If you'd rather use the official images, drop-in replacements:
 
 ---
 
-## Backups
+## 💾 Backups
 
 Handled via BorgBackup at the host level (managed through OpenMediaVault, not part of this Compose stack).
 
 ---
 
-## Getting Started
+## 🚀 Getting Started
 
 1. Clone the repo
 2. Copy each `*.env` file (not included) and fill in your values
