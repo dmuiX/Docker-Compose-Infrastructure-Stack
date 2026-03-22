@@ -1,28 +1,50 @@
 # Docker Compose Infrastructure Stack
 
-A curated subset of my Docker Compose files — focused on self-hosted infrastructure services.
+Self-hosted infrastructure stack: SSO/OIDC, Active Directory, reverse proxy, DNS — optimized for minimal resource usage.
 
-> **Note:** Only compose files are included. `.env` files are excluded as they contain secrets/passwords.
+> **This is a curated, secrets-free extract of my production Docker Compose stack.** The full setup runs on a Debian 13 homelab server managed with OpenMediaVault, with additional services and configuration not included here. Only compose files are shared — `.env` files are excluded as they contain secrets/passwords.
+
+---
+
+## Why this stack?
+
+**Why Docker Compose instead of Kubernetes?**
+For a single-node setup, Kubernetes adds orchestration overhead without real benefit. Docker Compose gives you the same containerized services with a fraction of the resource usage — the entire stack (25+ containers) runs at ~28W idle and ~3GB RAM. I run a separate [Talos Kubernetes cluster](https://github.com/dmuiX/k8s-cluster-talos) for learning and testing — but for production use on a single host, Compose is the pragmatic choice.
+
+**Why Authelia instead of Keycloak?**
+Keycloak is powerful but heavy — it needs its own database, eats 500MB+ RAM at idle, and is built for enterprise-scale identity federation. Authelia is lightweight, config-file-driven, and does exactly what's needed: SSO, OIDC, 2FA — without the resource overhead. Paired with SWAG as reverse proxy, it adds authentication to any service with a single nginx directive.
+
+**Why Samba-DC instead of FreeIPA or LDAP-only?**
+Samba-DC is one of the few realistic ways to run an AD-compatible domain controller inside Docker — with DNS, Kerberos, LDAP, and Group Policy support. The main reason: centralized SSO for both Windows and Mac clients, with domain join, AD-native group management, and Kerberos authentication out of the box. FreeIPA didn't work well in Docker when I tested it. Plain OpenLDAP would handle basic authentication but doesn't give you the AD functionality needed for Windows domain join and Group Policy.
+
+**Why Uptime Kuma instead of Prometheus/Grafana?**
+A full-blown Prometheus stack is not necessary for a single-node host. Uptime Kuma handles endpoint monitoring with email alerts when something goes down — that's all that's needed. Email alerting is configured through OpenMediaVault at the host level. For system stats, OMV, Arcane, or just `btop` on the host do the job without running a time-series database, exporters, and Grafana dashboards.
 
 ---
 
 ## Architecture Overview
 
-```text
-Internet
-   │
-   ▼
-[SWAG] ── Reverse Proxy & SSL termination
-   │
-   ▼
-[Authelia] ── Auth middleware (login step before reaching any service)
-   │            backed by Samba-DC (AD) for users & groups
-   │
-   ├── [Nextcloud] ── Example application service
-   └── [Arcane] ── Dashboard / Service overview
+```mermaid
+graph TD
+    Internet([Internet])
 
-[Pi-hole] ── Local DNS resolver (with Unbound)
-[Dockerproxy] ── Secured Docker socket proxy
+    Internet --> SWAG
+
+    subgraph Core Infrastructure
+        SWAG[SWAG<br/>Reverse Proxy & SSL]
+        SWAG --> Authelia[Authelia<br/>SSO / OIDC / 2FA]
+        Authelia -.->|LDAP auth| SambaDC[Samba-DC<br/>Active Directory]
+    end
+
+    subgraph Application Services
+        Authelia --> Nextcloud[Nextcloud<br/>Cloud Storage]
+        Authelia --> Arcane[Arcane<br/>Dashboard]
+    end
+
+    subgraph DNS & Network
+        Pihole[Pi-hole + Unbound<br/>Local DNS]
+        Dockerproxy[Docker Proxy<br/>Secured Socket]
+    end
 ```
 
 ---
@@ -174,7 +196,7 @@ docker network create -d macvlan \
 
 ## Container Registry (`dhi.io`)
 
-[dhi.io](https://dhi.io) is basically Docker Hub — free accounts available. Some images here are pulled from it (`uptime-kuma`, `postgres`, `redis`).
+Images are pulled from [dhi.io](https://dhi.io) instead of Docker Hub for faster and more complete CVE fixes. Some images here use it (`uptime-kuma`, `postgres`, `redis`).
 If you'd rather use the official images, drop-in replacements:
 
 | `dhi.io` image | Official replacement |
@@ -182,6 +204,12 @@ If you'd rather use the official images, drop-in replacements:
 | `dhi.io/uptime-kuma:2` | `louislam/uptime-kuma:2` |
 | `dhi.io/postgres:18-alpine3.22` | `postgres:18-alpine` |
 | `dhi.io/redis:8` | `redis:8-alpine` |
+
+---
+
+## Backups
+
+Handled via BorgBackup at the host level (managed through OpenMediaVault, not part of this Compose stack).
 
 ---
 
