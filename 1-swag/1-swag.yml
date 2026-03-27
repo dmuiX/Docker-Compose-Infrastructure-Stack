@@ -7,7 +7,7 @@
 services:
   swag:
     container_name: swag
-    image: lscr.io/linuxserver/swag:latest
+    image: lscr.io/linuxserver/swag:5.4.0-ls447
     cap_add:
       - NET_ADMIN
     volumes:
