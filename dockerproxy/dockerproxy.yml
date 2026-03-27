@@ -7,7 +7,7 @@
 # Provide limited access to the docker socket: https://github.com/linuxserver/docker-mods/tree/universal-docker; https://hub.docker.com/r/tecnativa/docker-socket-proxy 
 services:
   dockerproxy:
-    image: lscr.io/linuxserver/socket-proxy:latest
+    image: lscr.io/linuxserver/socket-proxy:3.2.14-r0-ls74
     container_name: dockerproxy
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
