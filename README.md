@@ -71,7 +71,7 @@ Reverse-proxy authentication applies only where SWAG is configured to call Authe
 
 **OIDC is not ready to use in the published configuration.** The `identity_providers.oidc` section is empty; signing keys and client registrations must be supplied. The Compose file references an OIDC HMAC secret, but that alone does not configure a provider.
 
-### DNS Records
+### 🌐 DNS Records
 
 The file [`samba-dc/dns-records`](samba-dc/dns-records) contains DNS entries for your domain (e.g. `domain.org`).
 
@@ -79,7 +79,7 @@ Review the domain and addresses before using [`samba-dc/import-dns-records.sh`](
 
 [`authelia/add-client.sh`](authelia/add-client.sh) is a host-specific helper, not a bootstrap command: it has a hardcoded configuration path, expects an existing `clients:` list, prints a generated client secret, and restarts Authelia. Review and adapt it only after completing the provider configuration.
 
-### Authelia Secrets
+### 🔑 Authelia Secrets
 
 Authelia loads secrets from files in `authelia/secrets/` (gitignored — create them on each host).
 
